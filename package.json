@@ -1,0 +1,30 @@
+{
+  "name": "pkce-spa",
+  "version": "0.1.0",
+  "description": "",
+  "dependencies": {
+    "rxjs": "~7.2.0"
+  },
+  "devDependencies": {
+    "prettier": "2.3.2",
+    "typescript": "^4.3.5"
+  },
+  "scripts": {
+    "prepare": "tsc",
+    "pretest": "tsc",
+    "test": "mocha dist/mod_test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/joelshepherd/pkce-spa.git"
+  },
+  "author": {
+    "name": "Joel Shepherd",
+    "url": "https://github.com/joelshepherd"
+  },
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/joelshepherd/pkce-spa/issues"
+  },
+  "homepage": "https://github.com/joelshepherd/pkce-spa#readme"
+}
