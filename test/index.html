@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Test</title>
+  </head>
+  <body>
+    <button id="login">Login</button>
+    <button id="logout">Logout</button>
+    <p>Current access token: <span id="access-token"></span></p>
+    <script type="module">
+      import { Session } from "../dist/session.js";
+
+      const loginButton = document.getElementById("login");
+      const logoutButton = document.getElementById("logout");
+      const accessTokenSpan = document.getElementById("access-token");
+
+      const session = new Session({
+        clientId: "client-id",
+        returnUrl: "http://localhost:5000/test/",
+        scopes: ["offline_access"],
+        openidConfiguration: {
+          authorizationUrl: "http://localhost:4444/auth",
+          tokenUrl: "http://localhost:4444/token",
+          endSessionUrl: "http://localhost:4444/session/end",
+        },
+      });
+
+      session.stream.subscribe((accessToken) => {
+        accessTokenSpan.innerText = accessToken;
+      });
+      loginButton.addEventListener("click", () => {
+        session.login();
+      });
+      logoutButton.addEventListener("click", () => {
+        session.logout();
+      });
+    </script>
+  </body>
+</html>

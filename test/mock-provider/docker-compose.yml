@@ -1,0 +1,8 @@
+version: "3.7"
+services:
+  mock-provider:
+    build:
+      dockerfile: Dockerfile
+      context: .
+    ports:
+      - 4444:4444
