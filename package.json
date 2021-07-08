@@ -1,24 +1,16 @@
 {
   "name": "pkce-spa",
-  "version": "0.1.0",
-  "description": "An OpenID Connect authentication manager for modern SPAs using PKCE.",
+  "version": "0.1.1",
+  "description": "An opinionated authentication session manager for OpenID Connect using PKCE.",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "typesVersions": {
-    "<3.8": {
-      "*": [
-        "dist/ts3.5/*"
-      ]
-    }
-  },
   "files": [
     "dist/*.js",
-    "dist/*.d.ts",
-    "dist/ts3.5/*.d.ts"
+    "dist/*.d.ts"
   ],
   "scripts": {
-    "build": "tsc && downlevel-dts dist/*.d.ts dist/ts3.5",
+    "build": "tsc && downlevel-dts dist dist",
     "prepare": "npm run build",
     "pretest": "npm run build",
     "test": "npx playwright test",
