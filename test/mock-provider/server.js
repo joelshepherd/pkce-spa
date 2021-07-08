@@ -7,8 +7,8 @@ const provider = new Provider(`http://localhost:${port}`, {
     {
       client_id: "client-id",
       client_secret: "client-secret",
-      redirect_uris: ["http://localhost:5000/test/"],
-      post_logout_redirect_uris: ["http://localhost:5000/test/"],
+      redirect_uris: ["http://localhost:5000/"],
+      post_logout_redirect_uris: ["http://localhost:5000/"],
       token_endpoint_auth_method: "none",
     },
   ],

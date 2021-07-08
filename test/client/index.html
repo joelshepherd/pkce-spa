@@ -11,15 +11,11 @@
     <button id="logout">Logout</button>
     <p>Current access token: <span id="access-token">[pending]</span></p>
     <script type="module">
-      import { Session } from "../dist/index.js";
-
-      const loginButton = document.getElementById("login");
-      const logoutButton = document.getElementById("logout");
-      const accessTokenSpan = document.getElementById("access-token");
+      import { Session } from "./dist/index.js";
 
       const session = new Session({
         clientId: "client-id",
-        returnUrl: "http://localhost:5000/test/",
+        returnUrl: "http://localhost:5000/",
         scopes: ["openid", "offline_access"],
         openidConfiguration: {
           authorizationEndpoint: "http://localhost:5001/auth",
@@ -27,6 +23,11 @@
           endSessionEndpoint: "http://localhost:5001/session/end",
         },
       });
+
+      const loginButton = document.getElementById("login");
+      const logoutButton = document.getElementById("logout");
+      const accessTokenSpan = document.getElementById("access-token");
+
       session.onChange((accessToken) => {
         accessTokenSpan.innerText = accessToken || "[none]";
       });
@@ -34,6 +35,7 @@
       loginButton.addEventListener("click", () => {
         session.login();
       });
+
       logoutButton.addEventListener("click", () => {
         session.logout();
       });

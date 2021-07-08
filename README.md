@@ -8,4 +8,4 @@ An opinionated authentication session manager for OpenID Connect using PKCE.
 
 - Automatic token refresh
 - Cross-tab session syncronisation
-- Exposed `access_token` as an observable
+- Exposes `access_token` as an event listener

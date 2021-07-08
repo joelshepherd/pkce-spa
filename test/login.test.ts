@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 test("login flow", async ({ page }) => {
-  await page.goto("http://localhost:5000/test/");
+  await page.goto("http://localhost:5000/");
 
   await page.click("text=Login");
 
@@ -15,7 +15,7 @@ test("login flow", async ({ page }) => {
 
   // tests
   const returnUrl = page.url();
-  expect(returnUrl).toContain("http://localhost:5000/test/");
+  expect(returnUrl).toContain("http://localhost:5000/");
   expect(returnUrl).not.toContain("error");
 
   await page.waitForRequest("http://localhost:5001/token");
