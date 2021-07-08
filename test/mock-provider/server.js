@@ -1,21 +1,19 @@
-const { Provider } = require("oidc-provider");
+import { Provider } from "oidc-provider";
 
-const port = 4444;
+const port = 5001;
 
-const config = {
+const provider = new Provider(`http://localhost:${port}`, {
   clients: [
     {
       client_id: "client-id",
       client_secret: "client-secret",
       redirect_uris: ["http://localhost:5000/test/"],
-      post_logout_redirect_uris: ["http://localhost:5000/"],
+      post_logout_redirect_uris: ["http://localhost:5000/test/"],
       token_endpoint_auth_method: "none",
     },
   ],
   clientBasedCORS: () => true,
-};
-
-const provider = new Provider(`http://localhost:${port}`, config);
+});
 
 provider.listen(port, () => {
   console.log(

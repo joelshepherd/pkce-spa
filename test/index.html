@@ -9,9 +9,9 @@
   <body>
     <button id="login">Login</button>
     <button id="logout">Logout</button>
-    <p>Current access token: <span id="access-token"></span></p>
+    <p>Current access token: <span id="access-token">[pending]</span></p>
     <script type="module">
-      import { Session } from "../dist/session.js";
+      import { Session } from "../dist/index.js";
 
       const loginButton = document.getElementById("login");
       const logoutButton = document.getElementById("logout");
@@ -20,17 +20,17 @@
       const session = new Session({
         clientId: "client-id",
         returnUrl: "http://localhost:5000/test/",
-        scopes: ["offline_access"],
+        scopes: ["openid", "offline_access"],
         openidConfiguration: {
-          authorizationUrl: "http://localhost:4444/auth",
-          tokenUrl: "http://localhost:4444/token",
-          endSessionUrl: "http://localhost:4444/session/end",
+          authorizationEndpoint: "http://localhost:5001/auth",
+          tokenEndpoint: "http://localhost:5001/token",
+          endSessionEndpoint: "http://localhost:5001/session/end",
         },
       });
-
-      session.stream.subscribe((accessToken) => {
-        accessTokenSpan.innerText = accessToken;
+      session.onChange((accessToken) => {
+        accessTokenSpan.innerText = accessToken || "[none]";
       });
+
       loginButton.addEventListener("click", () => {
         session.login();
       });

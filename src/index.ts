@@ -1,1 +1,1 @@
-export { Session } from "./session";
+export { Session, Config } from "./session.js";

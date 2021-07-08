@@ -1,7 +1,0 @@
-{
-  "name": "mock-provider",
-  "private": true,
-  "dependencies": {
-    "oidc-provider": "^7.5.1"
-  }
-}

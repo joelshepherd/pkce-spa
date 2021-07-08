@@ -5,9 +5,22 @@ test("login flow", async ({ page }) => {
 
   await page.click("text=Login");
 
+  // credentials
   await page.fill('input[name="login"]', "username");
   await page.fill('input[name="password"]', "password");
   await page.click("button[type=submit]");
 
-  // expect(page.url()).toBe("http://localhost:5000/test/");
+  // consent
+  await page.click("button[type=submit]");
+
+  // tests
+  const returnUrl = page.url();
+  expect(returnUrl).toContain("http://localhost:5000/test/");
+  expect(returnUrl).not.toContain("error");
+
+  await page.waitForRequest("http://localhost:5001/token");
+
+  const accessToken = await page.textContent("span#access-token");
+  expect(accessToken).not.toBe("[pending]");
+  expect(accessToken).not.toBe("[none]");
 });

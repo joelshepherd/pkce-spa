@@ -1,22 +1,38 @@
 {
   "name": "pkce-spa",
   "version": "0.1.0",
-  "description": "",
+  "description": "An OpenID Connect authentication manager for modern SPAs using PKCE.",
   "type": "module",
-  "module": "dist/index.js",
+  "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "scripts": {
-    "prepare": "tsc",
-    "pretest": "tsc",
-    "test": "npx playwright test",
-    "test:serve": "npx serve"
+  "typesVersions": {
+    "<3.8": {
+      "*": [
+        "dist/ts3.5/*"
+      ]
+    }
   },
-  "dependencies": {
-    "rxjs": "~7.2.0"
+  "files": [
+    "dist/*.js",
+    "dist/*.d.ts",
+    "dist/ts3.5/*.d.ts"
+  ],
+  "scripts": {
+    "build": "tsc && downlevel-dts dist/*.d.ts dist/ts3.5",
+    "prepare": "npm run build",
+    "pretest": "npm run build",
+    "test": "npx playwright test",
+    "test:serve-client": "npx serve",
+    "test:serve-provider": "node test/mock-provider/server.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.12.3",
+    "@types/oidc-provider": "^7.4.0",
+    "downlevel-dts": "^0.7.0",
+    "oidc-provider": "^7.5.1",
+    "playwright": "^1.12.3",
     "prettier": "2.3.2",
+    "serve": "^12.0.0",
     "typescript": "^4.3.5"
   },
   "repository": {

@@ -1,23 +1,29 @@
-import { fromEvent, Observable, ReplaySubject } from "rxjs";
-import { filter, map } from "rxjs/operators";
-import * as Lock from "./lock";
+import * as Lock from "./lock.js";
 import {
   hasStateExpired,
   mapResponseToState,
   persistState,
   restoreState,
   State,
-} from "./state";
+} from "./state.js";
 
 export interface Config {
+  /** Client ID */
   clientId: string;
+  /** Return URL */
   returnUrl: string;
+  /** List of scopes */
   scopes: string[];
+  /** OpenID Connect configuration */
   openidConfiguration: {
-    authorizationUrl: string;
-    tokenUrl: string;
-    endSessionUrl: string;
+    /** Authorization endpoint */
+    authorizationEndpoint: string;
+    /** Token endpoint */
+    tokenEndpoint: string;
+    /** End session endpoint */
+    endSessionEndpoint: string;
   };
+  extraAuthorizationParams?: Record<string, string>;
 }
 
 enum InternalError {
@@ -25,25 +31,62 @@ enum InternalError {
   ExchangeInProgress,
 }
 
+type AccessTokenListener = (accessToken: string | null) => void;
+type StateListener = (state: State | null) => void;
+type UnsubscribeListener = () => void;
+
 /**
  * Session manager
  */
 export class Session {
   #config: Config;
   #key: string;
-  #stateStream: ReplaySubject<State | null>;
-  /** Stream of access tokens. */
-  stream: Observable<string | null>;
+  #accessToken?: string | null;
+  #accessTokenListeners: AccessTokenListener[];
+  #stateListeners: StateListener[];
 
   constructor(config: Config) {
     this.#config = config;
     this.#key = "session_state";
-    this.#stateStream = new ReplaySubject(1);
+    this.#accessTokenListeners = [];
 
-    // Publish access token updates
-    this.stream = this.#stateStream.pipe(
-      map((state) => (state ? state.accessToken : null))
-    );
+    // State change watchers
+    let expiringTimer: number | undefined;
+    let expiredTimer: number | undefined;
+    this.#stateListeners = [
+      // Publish access token changes
+      (state) => this.#nextAccessToken(state ? state.accessToken : null),
+      // Expiring timer for refreshing token
+      (state) => {
+        if (expiringTimer) clearTimeout(expiringTimer);
+        if (state)
+          expiringTimer = setTimeout(() => {
+            expiringTimer = undefined;
+            this.#exchangeRefreshToken(state)
+              .then((state) => this.#nextState(state))
+              .catch((error) => {
+                // Ignore and leave the expiry timer to handle
+                // Another tab may succeed refreshing
+              });
+          }, state.expiresAt - Date.now() - 30 * 1000);
+      },
+      // Expired timer
+      (state) => {
+        if (expiredTimer) clearTimeout(expiredTimer);
+        if (state)
+          expiredTimer = setTimeout(() => {
+            expiredTimer = undefined;
+            this.#nextState(null);
+          }, state.expiresAt - Date.now());
+      },
+    ];
+
+    // Syncronise cross-tab state changes
+    window.addEventListener("storage", (event) => {
+      if (event.key === this.#key) {
+        this.#nextState(restoreState(this.#key), false);
+      }
+    });
 
     // Resolve initial state
     const returnedCodes = getReturnedCodes();
@@ -52,67 +95,25 @@ export class Session {
     if (returnedCodes) {
       // When an auth code is present in the redirect
       this.#exchangeAuthorizationCode(returnedCodes[0], returnedCodes[1])
-        .then((state) => this.#next(state))
-        .catch(() => this.#next(null));
+        .then((state) => this.#nextState(state))
+        .catch(() => this.#nextState(null));
     } else if (restoredState) {
       // When state exists in store
       if (hasStateExpired(restoredState)) {
         this.#exchangeRefreshToken(restoredState)
-          .then((state) => this.#next(state))
+          .then((state) => this.#nextState(state))
           .catch((error) => {
             // Storage listener will pick up in progress exchange from other tabs
             if (error === InternalError.ExchangeInProgress) return;
-            this.#next(null);
+            this.#nextState(null);
           });
       } else {
-        this.#next(restoredState, false);
+        this.#nextState(restoredState, false);
       }
     } else {
       // When neither of those are true
-      this.#next(null, false);
+      this.#nextState(null, false);
     }
-
-    // Expiring timer for refreshing token
-    let expiringTimer: number | undefined;
-    this.#stateStream.subscribe((state) => {
-      if (expiringTimer) clearTimeout(expiringTimer);
-      if (state)
-        expiringTimer = setTimeout(() => {
-          expiringTimer = undefined;
-          this.#exchangeRefreshToken(state)
-            .then((state) => this.#next(state))
-            .catch((error) => {
-              // Ignore and leave the expiry timer to handle
-              // Another tab may succeed refreshing
-            });
-        }, state.expiresAt - Date.now() - 30 * 1000);
-    });
-
-    // Expired timer
-    let expiredTimer: number | undefined;
-    this.#stateStream.subscribe((state) => {
-      if (expiredTimer) clearTimeout(expiredTimer);
-      if (state)
-        expiredTimer = setTimeout(() => {
-          expiredTimer = undefined;
-          this.#next(null);
-        }, state.expiresAt - Date.now());
-    });
-
-    // TODO: Try and get this working both expiring/expired:
-    // this.#stateStream
-    //   .pipe(
-    //     map((state) => (state ? state.expiresAt : Number.MAX_SAFE_INTEGER)),
-    //     switchMap((expiresAt) => timer(expiresAt - Date.now()))
-    //   )
-    //   .subscribe(() => this.#next(null));
-
-    // Syncronise cross-tab state changes
-    fromEvent<StorageEvent>(window, "storage")
-      .pipe(filter((event) => event.key === this.#key))
-      .subscribe(() => {
-        this.#next(restoreState(this.#key), false);
-      });
   }
 
   /**
@@ -133,10 +134,11 @@ export class Session {
       state: stateToken,
       code_challenge: codeChallenge,
       code_challenge_method: "S256",
+      ...this.#config.extraAuthorizationParams,
     });
 
     window.location.replace(
-      `${this.#config.openidConfiguration.authorizationUrl}?${params}`
+      `${this.#config.openidConfiguration.authorizationEndpoint}?${params}`
     );
   }
 
@@ -144,8 +146,30 @@ export class Session {
    * Logout from the auth provider
    */
   async logout(): Promise<void> {
-    this.#next(null);
-    window.location.replace(this.#config.openidConfiguration.endSessionUrl);
+    this.#nextState(null);
+    window.location.replace(
+      this.#config.openidConfiguration.endSessionEndpoint
+    );
+  }
+
+  /**
+   * Listen for changes to the access token
+   *
+   * @returns A function to unsubscribe
+   */
+  onChange(listener: AccessTokenListener): UnsubscribeListener {
+    this.#accessTokenListeners.push(listener);
+
+    const unsubscribe = () => {
+      this.#accessTokenListeners = this.#accessTokenListeners.filter(
+        (filter) => filter !== listener
+      );
+    };
+
+    // Replay access token if one exists
+    if (this.#accessToken !== undefined) listener(this.#accessToken);
+
+    return unsubscribe;
   }
 
   /**
@@ -158,19 +182,22 @@ export class Session {
     // TODO: proper flow state management
     const codeVerifier = window.sessionStorage.getItem("oidc:" + stateToken)!;
 
-    const response = await fetch(this.#config.openidConfiguration.tokenUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({
-        client_id: this.#config.clientId,
-        redirect_uri: this.#config.returnUrl,
-        grant_type: "authorization_code",
-        code,
-        code_verifier: codeVerifier,
-      }),
-    });
+    const response = await fetch(
+      this.#config.openidConfiguration.tokenEndpoint,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          client_id: this.#config.clientId,
+          redirect_uri: this.#config.returnUrl,
+          grant_type: "authorization_code",
+          code,
+          code_verifier: codeVerifier,
+        }),
+      }
+    );
     if (!response.ok) throw InternalError.ExchangeError;
 
     return mapResponseToState(await response.json());
@@ -188,17 +215,20 @@ export class Session {
     }
 
     try {
-      const response = await fetch(this.#config.openidConfiguration.tokenUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({
-          client_id: this.#config.clientId,
-          grant_type: "refresh_token",
-          refresh_token: state.refreshToken,
-        }),
-      });
+      const response = await fetch(
+        this.#config.openidConfiguration.tokenEndpoint,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            client_id: this.#config.clientId,
+            grant_type: "refresh_token",
+            refresh_token: state.refreshToken,
+          }),
+        }
+      );
       if (!response.ok) throw InternalError.ExchangeError;
 
       return mapResponseToState(await response.json());
@@ -207,9 +237,14 @@ export class Session {
     }
   }
 
-  #next(state: State | null, persist = true): void {
-    this.#stateStream.next(state);
+  #nextState(state: State | null, persist = true): void {
+    this.#stateListeners.forEach((listener) => listener(state));
     if (persist) persistState(this.#key, state);
+  }
+
+  #nextAccessToken(accessToken: string | null): void {
+    this.#accessToken = accessToken;
+    this.#accessTokenListeners.forEach((listener) => listener(accessToken));
   }
 }
 
