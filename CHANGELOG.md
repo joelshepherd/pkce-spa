@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Added throw on missing/invalid state
+
 ## [0.2.0] - 2021-07-09
 
 - Added post logout redirect URL option

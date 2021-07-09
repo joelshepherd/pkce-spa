@@ -6,6 +6,7 @@ import {
   restoreState,
   State,
 } from "./state.js";
+import { Stream } from "./stream.js";
 
 export interface Config {
   /** Client ID */
@@ -31,57 +32,23 @@ export interface Config {
 enum InternalError {
   ExchangeError,
   ExchangeInProgress,
+  InvalidState,
 }
 
-type AccessTokenListener = (accessToken: string | null) => void;
-type StateListener = (state: State | null) => void;
-type UnsubscribeListener = () => void;
+type AccessTokenSink = (accessToken: string | null) => void;
+type Unsubscribe = () => void;
 
 /**
  * Session manager
  */
 export class Session {
   #config: Config;
-  #key: string;
-  #accessToken?: string | null;
-  #accessTokenListeners: AccessTokenListener[];
-  #stateListeners: StateListener[];
+  #key = "session_state";
+  #accessToken = new Stream<string | null>();
+  #state = new Stream<State | null>();
 
   constructor(config: Config) {
     this.#config = config;
-    this.#key = "session_state";
-    this.#accessTokenListeners = [];
-
-    // State change watchers
-    let expiringTimer: number | undefined;
-    let expiredTimer: number | undefined;
-    this.#stateListeners = [
-      // Publish access token changes
-      (state) => this.#nextAccessToken(state ? state.accessToken : null),
-      // Expiring timer for refreshing token
-      (state) => {
-        if (expiringTimer) clearTimeout(expiringTimer);
-        if (state)
-          expiringTimer = setTimeout(() => {
-            expiringTimer = undefined;
-            this.#exchangeRefreshToken(state)
-              .then((state) => this.#nextState(state))
-              .catch((error) => {
-                // Ignore and leave the expiry timer to handle
-                // Another tab may succeed refreshing
-              });
-          }, state.expiresAt - Date.now() - 30 * 1000);
-      },
-      // Expired timer
-      (state) => {
-        if (expiredTimer) clearTimeout(expiredTimer);
-        if (state)
-          expiredTimer = setTimeout(() => {
-            expiredTimer = undefined;
-            this.#nextState(null);
-          }, state.expiresAt - Date.now());
-      },
-    ];
 
     // Syncronise cross-tab state changes
     window.addEventListener("storage", (event) => {
@@ -89,6 +56,37 @@ export class Session {
         this.#nextState(restoreState(this.#key), false);
       }
     });
+
+    // Expiring timer for refreshing token
+    let expiringTimer: number | undefined;
+    this.#state.subscribe((state) => {
+      if (expiringTimer) clearTimeout(expiringTimer);
+      if (state)
+        expiringTimer = setTimeout(() => {
+          expiringTimer = undefined;
+          this.#exchangeRefreshToken(state)
+            .then((state) => this.#nextState(state))
+            .catch((error) => {
+              // Ignore and leave the expiry timer to handle, another tab may succeed refreshing
+            });
+        }, state.expiresAt - Date.now() - 30 * 1000);
+    });
+
+    // Expired timer
+    let expiredTimer: number | undefined;
+    this.#state.subscribe((state) => {
+      if (expiredTimer) clearTimeout(expiredTimer);
+      if (state)
+        expiredTimer = setTimeout(() => {
+          expiredTimer = undefined;
+          this.#nextState(null);
+        }, state.expiresAt - Date.now());
+    });
+
+    // Publish access token changes
+    this.#state.subscribe((state) =>
+      this.#accessToken.next(state ? state.accessToken : null)
+    );
 
     // Resolve initial state
     const returnedCodes = getReturnedCodes();
@@ -170,19 +168,8 @@ export class Session {
    *
    * @returns A function to unsubscribe
    */
-  onChange(listener: AccessTokenListener): UnsubscribeListener {
-    this.#accessTokenListeners.push(listener);
-
-    const unsubscribe = () => {
-      this.#accessTokenListeners = this.#accessTokenListeners.filter(
-        (filter) => filter !== listener
-      );
-    };
-
-    // Replay access token if one exists
-    if (this.#accessToken !== undefined) listener(this.#accessToken);
-
-    return unsubscribe;
+  onChange(sink: AccessTokenSink): Unsubscribe {
+    return this.#accessToken.subscribe(sink);
   }
 
   /**
@@ -193,7 +180,10 @@ export class Session {
     stateToken: string
   ): Promise<State> {
     // TODO: proper flow state management
-    const codeVerifier = window.sessionStorage.getItem("oidc:" + stateToken)!;
+    const codeVerifier = window.sessionStorage.getItem("oidc:" + stateToken);
+
+    // TODO: External errors
+    if (!codeVerifier) throw InternalError.InvalidState;
 
     const response = await fetch(
       this.#config.openidConfiguration.tokenEndpoint,
@@ -220,7 +210,7 @@ export class Session {
    * Exchange refresh token for state
    */
   async #exchangeRefreshToken(state: State): Promise<State> {
-    const lockKey = "refresh_lock";
+    const lockKey = "session_lock";
 
     const acquiredLock = await Lock.acquire(lockKey);
     if (!acquiredLock) {
@@ -251,13 +241,8 @@ export class Session {
   }
 
   #nextState(state: State | null, persist = true): void {
-    this.#stateListeners.forEach((listener) => listener(state));
+    this.#state.next(state);
     if (persist) persistState(this.#key, state);
-  }
-
-  #nextAccessToken(accessToken: string | null): void {
-    this.#accessToken = accessToken;
-    this.#accessTokenListeners.forEach((listener) => listener(accessToken));
   }
 }
 
