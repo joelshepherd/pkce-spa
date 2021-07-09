@@ -148,7 +148,8 @@ export class Session {
    * Logout from the auth provider
    */
   async logout(): Promise<void> {
-    this.#nextState(null);
+    // Clear persisted state
+    persistState(this.#key, null);
 
     const params = new URLSearchParams(
       this.#config.postLogoutUrl

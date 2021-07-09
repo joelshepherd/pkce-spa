@@ -1,7 +1,5 @@
 # pkce-spa
 
-**Warning: current WIP**
-
 An opinionated authentication session manager for OpenID Connect using PKCE.
 
 ## Features
