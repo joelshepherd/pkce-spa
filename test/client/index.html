@@ -16,6 +16,7 @@
       const session = new Session({
         clientId: "client-id",
         returnUrl: "http://localhost:5000/",
+        postLogoutUrl: "http://localhost:5000/",
         scopes: ["openid", "offline_access"],
         openidConfiguration: {
           authorizationEndpoint: "http://localhost:5001/auth",

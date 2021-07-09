@@ -12,7 +12,6 @@
   "scripts": {
     "build": "tsc && downlevel-dts dist dist",
     "prepare": "npm run build",
-    "pretest": "npm run build",
     "test": "npx playwright test",
     "test:serve-client": "npx serve test/client",
     "test:serve-provider": "node test/mock-provider/server.js"

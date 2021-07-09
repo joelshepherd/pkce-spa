@@ -12,6 +12,8 @@ export interface Config {
   clientId: string;
   /** Return URL */
   returnUrl: string;
+  /** Post logout URL */
+  postLogoutUrl?: string;
   /** List of scopes */
   scopes: string[];
   /** OpenID Connect configuration */
@@ -147,8 +149,18 @@ export class Session {
    */
   async logout(): Promise<void> {
     this.#nextState(null);
+
+    const params = new URLSearchParams(
+      this.#config.postLogoutUrl
+        ? {
+            client_id: this.#config.clientId,
+            post_logout_redirect_uri: this.#config.postLogoutUrl,
+          }
+        : {}
+    );
+
     window.location.replace(
-      this.#config.openidConfiguration.endSessionEndpoint
+      `${this.#config.openidConfiguration.endSessionEndpoint}?${params}`
     );
   }
 
