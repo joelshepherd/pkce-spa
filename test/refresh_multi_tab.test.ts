@@ -18,7 +18,7 @@ test("refresh flow with multiple tabs", async ({ page, context }) => {
   const firstToken = await page.textContent("span#access-token");
 
   // Open many other pages
-  new Array(100).fill(null).map(async () => {
+  new Array(50).fill(null).forEach(async () => {
     const page = await context.newPage();
     await page.goto(testUrl);
   });

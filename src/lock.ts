@@ -14,7 +14,7 @@ export async function acquire(
   // Check for existing lock
   if (readLock(key)) return false;
 
-  const id = Math.floor(Math.random() * 1000000);
+  const id = Math.floor(Math.random() * 1_000_000);
   const expires = Date.now() + timeout;
 
   // Randomly delay the write to try and avoid simultaneous writes from different tabs
