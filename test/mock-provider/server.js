@@ -6,15 +6,15 @@ const provider = new Provider(`http://localhost:${port}`, {
   clients: [
     {
       client_id: "client-id",
-      client_secret: "client-secret",
-      redirect_uris: ["http://localhost:5000/"],
+      grant_types: ["authorization_code", "refresh_token"],
       post_logout_redirect_uris: ["http://localhost:5000/"],
+      redirect_uris: ["http://localhost:5000/"],
       token_endpoint_auth_method: "none",
     },
   ],
   clientBasedCORS: () => true,
   ttl: {
-    AccessToken: 60, // seconds
+    AccessToken: 40, // seconds
   },
 });
 

@@ -17,12 +17,13 @@
         clientId: "client-id",
         returnUrl: "http://localhost:5000/",
         postLogoutUrl: "http://localhost:5000/",
-        scopes: ["openid", "offline_access"],
+        scopes: ["offline_access"],
         openidConfiguration: {
           authorizationEndpoint: "http://localhost:5001/auth",
           tokenEndpoint: "http://localhost:5001/token",
           endSessionEndpoint: "http://localhost:5001/session/end",
         },
+        extraAuthorizationParams: { prompt: "consent" },
       });
 
       const loginButton = document.getElementById("login");

@@ -1,45 +1,39 @@
+type Lock = [id: number, expires: number];
+
 /**
  * Try and aquire a lock.
  *
- * Warning: not perfectly thread safe. Concurrent writes can break cross-tab sync of localstorage.
+ * Warning: this not perfectly thread safe.
+ * Concurrent writes can break the cross-tab sync of localstorage.
  */
-export function acquire(
+export async function acquire(
   key: string,
   timeout = 5000,
   safetyTimeout = 1000
 ): Promise<boolean> {
   // Check for existing lock
-  if (readLock(key)) return Promise.resolve(false);
+  if (readLock(key)) return false;
 
   const id = Math.floor(Math.random() * 1000000);
   const expires = Date.now() + timeout;
 
   // Randomly delay the write to try and avoid simultaneous writes from different tabs
-  const randomWait = Math.floor(Math.random() * safetyTimeout);
+  await delay(Math.floor(Math.random() * safetyTimeout));
 
-  // Seems clear, try and acquire
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      // Check for existing lock
-      if (readLock(key)) {
-        resolve(false);
-      } else {
-        // Try and acquire the lock
-        writeLock(key, [id, expires]);
+  // Check for existing lock
+  if (readLock(key)) return false;
 
-        // Check we still control the lock after the safetly timeout
-        setTimeout(() => {
-          const currentLock = readLock(key);
+  // Try and acquire the lock
+  writeLock(key, [id, expires]);
 
-          const stillHasLock =
-            currentLock !== null &&
-            id === currentLock[0] &&
-            expires === currentLock[1];
-          resolve(stillHasLock);
-        }, safetyTimeout);
-      }
-    }, randomWait);
-  });
+  // Check we still control the lock after the safety timeout
+  await delay(safetyTimeout);
+
+  const currentLock = readLock(key);
+  const stillHasLock =
+    currentLock !== null && id === currentLock[0] && expires === currentLock[1];
+
+  return stillHasLock;
 }
 
 /**
@@ -48,8 +42,6 @@ export function acquire(
 export function release(key: string): void {
   localStorage.removeItem(key);
 }
-
-type Lock = [id: number, expires: number];
 
 function readLock(key: string): Lock | null {
   try {
@@ -71,4 +63,8 @@ function readLock(key: string): Lock | null {
 
 function writeLock(key: string, lock: Lock): void {
   localStorage.setItem(key, JSON.stringify(lock));
+}
+
+function delay(timeout: number): Promise<void> {
+  return new Promise((res) => setTimeout(res, timeout));
 }

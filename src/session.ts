@@ -1,3 +1,4 @@
+import { InvalidStateError } from "./error.js";
 import * as Lock from "./lock.js";
 import {
   hasStateExpired,
@@ -17,7 +18,7 @@ export interface Config {
   postLogoutUrl?: string;
   /** List of scopes */
   scopes: string[];
-  /** OpenID Connect configuration */
+  /** OpenID Connect configuration document */
   openidConfiguration: {
     /** Authorization endpoint */
     authorizationEndpoint: string;
@@ -26,13 +27,13 @@ export interface Config {
     /** End session endpoint */
     endSessionEndpoint: string;
   };
+  /** Extra parameters to pass to the authorization request */
   extraAuthorizationParams?: Record<string, string>;
 }
 
 enum InternalError {
   ExchangeError,
   ExchangeInProgress,
-  InvalidState,
 }
 
 type AccessTokenSink = (accessToken: string | null) => void;
@@ -66,8 +67,9 @@ export class Session {
           expiringTimer = undefined;
           this.#exchangeRefreshToken(state)
             .then((state) => this.#nextState(state))
-            .catch((error) => {
-              // Ignore and leave the expiry timer to handle, another tab may succeed refreshing
+            .catch(() => {
+              // Ignore error and leave it to the expired timer to handle
+              // Another tab may succeed refreshing in the meantime
             });
         }, state.expiresAt - Date.now() - 30 * 1000);
     });
@@ -179,11 +181,10 @@ export class Session {
     code: string,
     stateToken: string
   ): Promise<State> {
-    // TODO: proper flow state management
+    // TODO: abstract flow state management
     const codeVerifier = window.sessionStorage.getItem("oidc:" + stateToken);
 
-    // TODO: External errors
-    if (!codeVerifier) throw InternalError.InvalidState;
+    if (!codeVerifier) throw new InvalidStateError();
 
     const response = await fetch(
       this.#config.openidConfiguration.tokenEndpoint,

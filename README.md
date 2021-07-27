@@ -2,6 +2,9 @@
 
 An opinionated authentication session manager for OpenID Connect using PKCE.
 
+The session manager will keep the user's session permanently active until they
+either explicitly logout, or the authentication server denies a refresh attempt.
+
 ## Features
 
 - Automatic token refresh
