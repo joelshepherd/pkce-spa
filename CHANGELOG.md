@@ -3,6 +3,8 @@
 ## [Unreleased]
 
 - Added throw on missing/invalid state
+- Changed lock implementation to use broadcast channel in browsers than support it
+- Removed the 0-1s refresh delay that is no longer needed
 
 ## [0.2.0] - 2021-07-09
 

@@ -20,7 +20,7 @@ test("refresh flow", async ({ page }) => {
   expect(firstToken).not.toBe("[none]");
 
   // Wait for refresh
-  await page.waitForTimeout(12_000);
+  await page.waitForTimeout(6_000);
 
   // Check we have a new access token
   const secondToken = await page.textContent("span#access-token");

@@ -1,5 +1,5 @@
 import { InvalidStateError } from "./error.js";
-import * as Lock from "./lock.js";
+import { Lock } from "./lock.js";
 import {
   hasStateExpired,
   mapResponseToState,
@@ -45,6 +45,7 @@ type Unsubscribe = () => void;
 export class Session {
   #config: Config;
   #key = "session_state";
+  #refreshLock = new Lock("session_refresh_lock");
   #accessToken = new Stream<string | null>();
   #state = new Stream<State | null>();
 
@@ -211,9 +212,7 @@ export class Session {
    * Exchange refresh token for state
    */
   async #exchangeRefreshToken(state: State): Promise<State> {
-    const lockKey = "session_lock";
-
-    const acquiredLock = await Lock.acquire(lockKey);
+    const acquiredLock = await this.#refreshLock.acquire(state.refreshToken);
     if (!acquiredLock) {
       throw InternalError.ExchangeInProgress;
     }
@@ -233,11 +232,15 @@ export class Session {
           }),
         }
       );
+
+      // TODO: Expose public token refresh failure reasons
       if (!response.ok) throw InternalError.ExchangeError;
 
       return mapResponseToState(await response.json());
-    } finally {
-      Lock.release(lockKey);
+    } catch (error) {
+      // Only release the lock against this refresh token if we were unable to exchange
+      this.#refreshLock.release();
+      throw error;
     }
   }
 
