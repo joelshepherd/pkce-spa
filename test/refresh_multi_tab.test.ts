@@ -3,7 +3,18 @@ import { login, waitToResolve } from "./utils";
 
 const testUrl = "http://localhost:5000/";
 
-test("refresh flow with multiple tabs", async ({ page, context }) => {
+test("refresh flow with multiple tabs", async ({
+  browserName,
+  context,
+  page,
+}) => {
+  // Skip webkit for advanced concurrency test
+  // test.skip(
+  //   browserName === "webkit",
+  //   "Cannot guarantee thread safety in webkit without broadcast channel"
+  // );
+  test.slow();
+
   await page.goto(testUrl);
 
   await login(page);
@@ -15,28 +26,28 @@ test("refresh flow with multiple tabs", async ({ page, context }) => {
   // Wait for access token to resolve
   await waitToResolve(page);
 
-  const firstToken = await page.textContent("span#access-token");
+  let previousToken = await page.textContent("span#access-token");
 
   // Open many other pages
-  new Array(50).fill(null).forEach(async () => {
+  new Array(25).fill(null).forEach(async () => {
     const page = await context.newPage();
     await page.goto(testUrl);
   });
 
-  await page.waitForTimeout(12_000);
+  // Test 10 successful rotations
+  for (let i = 0; i < 10; i++) {
+    // Wait for a rotation response from any tab
+    await context.waitForEvent(
+      "response",
+      (res) => res.url() === "http://localhost:5001/token"
+    );
+    await page.waitForTimeout(1000);
 
-  // Check we have a new access token and are still logged in
-  const secondToken = await page.textContent("span#access-token");
-  expect(secondToken).not.toBe("[pending]");
-  expect(secondToken).not.toBe("[none]");
-  expect(secondToken).not.toBe(firstToken);
-
-  await page.waitForTimeout(12_000);
-
-  // Check we have a new access token and are still logged in
-  const thirdToken = await page.textContent("span#access-token");
-  expect(thirdToken).not.toBe("[pending]");
-  expect(thirdToken).not.toBe("[none]");
-  expect(thirdToken).not.toBe(firstToken);
-  expect(thirdToken).not.toBe(secondToken);
+    // Check we have a new access token and are still logged in
+    const nextToken = await page.textContent("span#access-token");
+    expect(nextToken).not.toBe("[pending]");
+    expect(nextToken).not.toBe("[none]");
+    expect(nextToken).not.toBe(previousToken);
+    previousToken = nextToken;
+  }
 });

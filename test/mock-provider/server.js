@@ -14,7 +14,7 @@ const provider = new Provider(`http://localhost:${port}`, {
   ],
   clientBasedCORS: () => true,
   ttl: {
-    AccessToken: 40, // seconds
+    AccessToken: 35, // seconds
   },
 });
 
