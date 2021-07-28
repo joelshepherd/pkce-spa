@@ -33,7 +33,7 @@ test("refresh flow with multiple tabs", async ({ context, page }) => {
       predicate: (res) => res.url() === "http://localhost:5001/token",
       timeout: 30_000,
     });
-    await page.waitForTimeout(1_000);
+    await page.waitForTimeout(2_000);
 
     // Check we have a new access token and are still logged in
     const nextToken = await page.textContent("span#access-token");
