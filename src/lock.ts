@@ -1,13 +1,16 @@
 type State = [key: string, id: number] | null;
 
 export class Lock {
+  #safetyTimeout: number;
+  #send: Sender;
   #state: State;
-  #sender: Sender;
 
-  constructor(key: string) {
+  constructor(key: string, safetyTimeout: number) {
+    this.#safetyTimeout = safetyTimeout;
+
     // Create messenge channel
     const create = "BroadcastChannel" in window ? broadcast : storage;
-    this.#sender = create(key, (state) => (this.#state = state));
+    this.#send = create(key, (state) => (this.#state = state));
 
     // After registration of the receiver
     this.#state = restoreState(key);
@@ -19,11 +22,10 @@ export class Lock {
 
     // Try and acquire the lock
     const id = Math.floor(Math.random() * 100_000_000);
-    await this.#sender([key, id]);
+    this.#send([key, id]);
 
-    // Wait long enough that any other thread that has passed the first lock
-    // check above can also reach here
-    await delay(50);
+    // Wait long enough that any other threads to receive the lock message
+    await delay(this.#safetyTimeout);
 
     // Check we still control the lock
     return (
@@ -32,7 +34,7 @@ export class Lock {
   }
 
   release(): void {
-    this.#sender(null);
+    this.#send(null);
   }
 }
 

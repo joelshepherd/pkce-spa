@@ -45,7 +45,7 @@ type Unsubscribe = () => void;
 export class Session {
   #config: Config;
   #key = "session_state";
-  #refreshLock = new Lock("session_refresh_lock");
+  #refreshLock = new Lock("session_refresh_lock", 200);
   #accessToken = new Stream<string | null>();
   #state = new Stream<State | null>();
 
