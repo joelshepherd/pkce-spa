@@ -1,7 +1,7 @@
 {
   "name": "pkce-spa",
   "version": "0.2.0",
-  "description": "An opinionated authentication session manager for OpenID Connect using PKCE.",
+  "description": "An authentication session manager for OpenID Connect using PKCE.",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -12,13 +12,14 @@
   "scripts": {
     "build": "tsc && downlevel-dts dist dist",
     "prepare": "npm run build",
-    "test": "npx playwright test --browser all",
-    "test:serve-client": "npx serve test/client",
+    "test": "playwright test --browser all",
+    "test:serve-client": "serve test/client",
     "test:serve-provider": "node test/mock-provider/server.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.13.0",
     "@types/oidc-provider": "^7.4.1",
+    "@types/react": "^17.0.22",
     "downlevel-dts": "^0.7.0",
     "oidc-provider": "^7.5.4",
     "playwright": "^1.13.0",

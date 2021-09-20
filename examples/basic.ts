@@ -1,4 +1,4 @@
-import { Session } from "../src/session";
+import { Session } from "../src/session.js";
 
 const session = new Session({
   clientId: "client-id",

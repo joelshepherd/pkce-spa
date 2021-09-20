@@ -7,7 +7,7 @@ import {
   restoreState,
   State,
 } from "./state.js";
-import { Stream } from "./stream.js";
+import { Sink, Stream, Unsubscribe } from "./stream.js";
 
 export interface Config {
   /** Client ID */
@@ -31,13 +31,12 @@ export interface Config {
   extraAuthorizationParams?: Record<string, string>;
 }
 
+type AccessToken = string | null;
+
 enum InternalError {
   ExchangeError,
   ExchangeInProgress,
 }
-
-type AccessTokenSink = (accessToken: string | null) => void;
-type Unsubscribe = () => void;
 
 /**
  * Session manager
@@ -46,7 +45,7 @@ export class Session {
   #config: Config;
   #key = "session_state";
   #refreshLock = new Lock("session_refresh_lock", 200);
-  #accessToken = new Stream<string | null>();
+  #accessToken = new Stream<AccessToken>();
   #state = new Stream<State | null>();
 
   constructor(config: Config) {
@@ -119,9 +118,7 @@ export class Session {
     }
   }
 
-  /**
-   * Login to the auth provider
-   */
+  /** Login to the auth provider */
   async login(): Promise<void> {
     const stateToken = generateStateToken();
     const [codeVerifier, codeChallenge] = await generatePKCETokens();
@@ -145,9 +142,7 @@ export class Session {
     );
   }
 
-  /**
-   * Logout from the auth provider
-   */
+  /** Logout from the auth provider */
   async logout(): Promise<void> {
     // Clear persisted state
     persistState(this.#key, null);
@@ -168,21 +163,18 @@ export class Session {
 
   /**
    * Listen for changes to the access token
-   *
-   * @returns A function to unsubscribe
+   * @returns An unsubscribe function
    */
-  onChange(sink: AccessTokenSink): Unsubscribe {
+  onChange(sink: Sink<AccessToken>): Unsubscribe {
     return this.#accessToken.subscribe(sink);
   }
 
-  /**
-   * Exchange authorisation code for state
-   */
+  /** Exchange authorisation code for state */
   async #exchangeAuthorizationCode(
     code: string,
     stateToken: string
   ): Promise<State> {
-    // TODO: abstract flow state management
+    // TODO: abstract code storage
     const codeVerifier = window.sessionStorage.getItem("oidc:" + stateToken);
 
     if (!codeVerifier) throw new InvalidStateError();
@@ -203,14 +195,14 @@ export class Session {
         }),
       }
     );
+
+    // TODO: Convert to external errors
     if (!response.ok) throw InternalError.ExchangeError;
 
     return mapResponseToState(await response.json());
   }
 
-  /**
-   * Exchange refresh token for state
-   */
+  /** Exchange refresh token for state */
   async #exchangeRefreshToken(state: State): Promise<State> {
     const acquiredLock = await this.#refreshLock.acquire(state.refreshToken);
     if (!acquiredLock) {
@@ -244,6 +236,7 @@ export class Session {
     }
   }
 
+  /** Push next state and persist */
   #nextState(state: State | null, persist = true): void {
     this.#state.next(state);
     if (persist) persistState(this.#key, state);

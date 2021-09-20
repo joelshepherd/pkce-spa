@@ -1,6 +1,6 @@
 # pkce-spa
 
-An opinionated authentication session manager for OpenID Connect using PKCE.
+An authentication session manager for OpenID Connect using PKCE.
 
 The session manager will keep the user's session permanently active until they
 either explicitly logout, or the authentication server denies a refresh attempt.
@@ -10,8 +10,15 @@ either explicitly logout, or the authentication server denies a refresh attempt.
 - Automatic token refresh
 - Cross-tab session syncronisation
 - Exposes `access_token` as an event listener
+- Zero dependencies
 
 ## Install
+
+```sh
+$ npm install pkce-spa
+```
+
+## Usage
 
 ```ts
 import { Session } from "pkce-spa";
@@ -23,6 +30,21 @@ session.onChange((accessToken) => {
   if (accessToken === null) session.login();
 });
 ```
+
+### React usage
+
+```tsx
+const Token = createContext();
+
+function TokenProvider({ children }) {
+  const [token, setToken] = useState(null);
+  useEffect(() => session.onChange(setToken), []); // Will clean up effect automatically
+
+  return <Token.Provider value={token}>{children}</Token.Provider>;
+}
+```
+
+See [examples](./examples) for more usage examples.
 
 ## OpenID Connect provider settings
 

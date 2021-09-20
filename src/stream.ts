@@ -1,17 +1,18 @@
-type Sink<T> = (value: T) => void;
-type Unsubscribe = () => void;
+export type Sink<T> = (value: T) => void;
+
+export type Unsubscribe = () => void;
 
 const PENDING = Symbol("pending");
 
 export class Stream<T> {
-  #sinks: Sink<T>[] = [];
+  #sinks: Set<Sink<T>> = new Set();
   #value: T | typeof PENDING = PENDING;
 
   subscribe(sink: Sink<T>): Unsubscribe {
-    this.#sinks.push(sink);
+    this.#sinks.add(sink);
     if (this.#value !== PENDING) sink(this.#value);
     return () => {
-      this.#sinks = this.#sinks.filter((filter) => filter !== sink);
+      this.#sinks.delete(sink);
     };
   }
 
