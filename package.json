@@ -1,6 +1,6 @@
 {
   "name": "pkce-spa",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "An authentication session manager for OpenID Connect using PKCE.",
   "type": "module",
   "main": "dist/index.js",

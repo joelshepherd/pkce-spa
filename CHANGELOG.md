@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.3.0] - 2021-12-03
 
 - Added throw on missing/invalid state
 - Added extra params option to login method

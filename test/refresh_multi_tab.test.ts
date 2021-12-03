@@ -1,9 +1,20 @@
 import { expect, test } from "@playwright/test";
 import { clientUrl, login, providerUrl, waitToResolve } from "./utils";
 
-test("refresh flow with multiple tabs", async ({ context, page }) => {
+test("refresh flow with multiple tabs", async ({
+  context,
+  page,
+  browserName,
+}) => {
   // This test is slow!
   test.slow();
+
+  // Thanks Safari's storage rewrite!
+  test.fixme(
+    browserName === "webkit",
+    "Safari does not support `BroadcastChannel` and the fallback storage" +
+      "implementation cannot handle this many tabs"
+  );
 
   await page.goto(clientUrl);
 
