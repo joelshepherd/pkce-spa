@@ -1,8 +1,8 @@
-import { test, expect } from "@playwright/test";
-import { login, waitToResolve } from "./utils";
+import { expect, test } from "@playwright/test";
+import { clientUrl, login, waitToResolve } from "./utils";
 
 test("logout flow", async ({ page, context }) => {
-  await page.goto("http://localhost:5000/");
+  await page.goto(clientUrl);
 
   await login(page);
 
@@ -12,7 +12,7 @@ test("logout flow", async ({ page, context }) => {
   await page.click("[name=logout]");
 
   const url = page.url();
-  expect(url).toBe("http://localhost:5000/");
+  expect(url).toBe(clientUrl);
 
   // Wait for access token to resolve
   await waitToResolve(page);

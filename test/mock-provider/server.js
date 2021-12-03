@@ -1,14 +1,14 @@
 import { Provider } from "oidc-provider";
 
-const port = 5001;
+const port = 8081;
 
 const provider = new Provider(`http://localhost:${port}`, {
   clients: [
     {
       client_id: "client-id",
       grant_types: ["authorization_code", "refresh_token"],
-      post_logout_redirect_uris: ["http://localhost:5000/"],
-      redirect_uris: ["http://localhost:5000/"],
+      post_logout_redirect_uris: ["http://localhost:8080/"],
+      redirect_uris: ["http://localhost:8080/"],
       token_endpoint_auth_method: "none",
     },
   ],

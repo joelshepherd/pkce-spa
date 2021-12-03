@@ -1,8 +1,12 @@
 import { Page } from "@playwright/test";
 
+export const clientUrl = "http://localhost:8080/";
+export const providerUrl = "http://localhost:8081/";
+
 /** Login to the provider */
 export async function login(page: Page): Promise<void> {
   await page.click("text=Login");
+  await page.waitForURL(`${providerUrl}**`);
 
   // credentials
   await page.fill('input[name="login"]', "username");
@@ -13,7 +17,7 @@ export async function login(page: Page): Promise<void> {
   await page.click("button[type=submit]");
 
   // wait for the code exchange
-  await page.waitForRequest("http://localhost:5001/token");
+  await page.waitForRequest(`${providerUrl}token`);
 }
 
 /** Wait for the access token to resolve */

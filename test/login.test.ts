@@ -1,13 +1,13 @@
-import { test, expect } from "@playwright/test";
-import { login, waitToResolve } from "./utils";
+import { expect, test } from "@playwright/test";
+import { clientUrl, login, waitToResolve } from "./utils";
 
 test("login flow", async ({ page }) => {
-  await page.goto("http://localhost:5000/");
+  await page.goto(clientUrl);
 
   await login(page);
 
   const returnUrl = page.url();
-  expect(returnUrl).toContain("http://localhost:5000/");
+  expect(returnUrl).toContain(clientUrl);
   expect(returnUrl).not.toContain("error");
 
   // Wait for access token to resolve

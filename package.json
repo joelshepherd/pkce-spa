@@ -10,22 +10,21 @@
     "dist/*.d.ts"
   ],
   "scripts": {
-    "build": "tsc && downlevel-dts dist dist",
+    "build": "tsc",
     "prepare": "npm run build",
     "test": "playwright test --browser all",
-    "test:serve-client": "serve test/client",
+    "test:serve-client": "serve test/client -p 8080",
     "test:serve-provider": "node test/mock-provider/server.js"
   },
   "devDependencies": {
-    "@playwright/test": "^1.13.0",
-    "@types/oidc-provider": "^7.4.1",
-    "@types/react": "^17.0.22",
-    "downlevel-dts": "^0.7.0",
-    "oidc-provider": "^7.5.4",
-    "playwright": "^1.13.0",
+    "@playwright/test": "^1.17.1",
+    "@types/oidc-provider": "^7.8.1",
+    "@types/react": "^17.0.37",
+    "oidc-provider": "^7.10.2",
+    "playwright": "^1.17.1",
     "prettier": "2.3.2",
-    "serve": "^12.0.0",
-    "typescript": "^4.3.5"
+    "serve": "^13.0.2",
+    "typescript": "^4.5.2"
   },
   "repository": {
     "type": "git",

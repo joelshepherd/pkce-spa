@@ -59,19 +59,26 @@ export class Session {
     });
 
     // Expiring timer for refreshing token
+    // TODO: what if this gets set on load to the wrong time in the future after a refresh has happened?
+    //       what about the minimum 1 second from the background (or up to 10 seconds if thought of as a tracking script)
+    // TODO: what is the tab gets frozen, then picks the callback back up, with its associated state
+    // TODO: what happens if the callback execution is delayed?
     let expiringTimer: number | undefined;
     this.#state.subscribe((state) => {
       if (expiringTimer) clearTimeout(expiringTimer);
-      if (state)
-        expiringTimer = setTimeout(() => {
-          expiringTimer = undefined;
-          this.#exchangeRefreshToken(state)
-            .then((state) => this.#nextState(state))
-            .catch(() => {
-              // Ignore error and leave it to the expired timer to handle
-              // Another tab may succeed refreshing in the meantime
-            });
-        }, state.expiresAt - Date.now() - 30 * 1000);
+      if (state) {
+        const expiresIn = state.expiresAt - Date.now() - 30000;
+        if (expiresIn > 0)
+          expiringTimer = setTimeout(() => {
+            expiringTimer = undefined;
+            this.#exchangeRefreshToken(state)
+              .then((state) => this.#nextState(state))
+              .catch(() => {
+                // Ignore error and leave it to the expired timer to handle
+                // Another tab may succeed refreshing in the meantime
+              });
+          }, expiresIn);
+      }
     });
 
     // Expired timer
@@ -118,12 +125,17 @@ export class Session {
     }
   }
 
-  /** Login to the auth provider */
-  async login(): Promise<void> {
+  /**
+   * Login to the auth provider
+   *
+   * @param extraAuthorizationParams Extra parameters to pass to this authorization request
+   */
+  async login(
+    extraAuthorizationParams?: Record<string, string>
+  ): Promise<void> {
     const stateToken = generateStateToken();
     const [codeVerifier, codeChallenge] = await generatePKCETokens();
 
-    // TODO: Removed expired state tokens
     window.sessionStorage.setItem("oidc:" + stateToken, codeVerifier);
 
     const params = new URLSearchParams({
@@ -135,6 +147,7 @@ export class Session {
       code_challenge: codeChallenge,
       code_challenge_method: "S256",
       ...this.#config.extraAuthorizationParams,
+      ...extraAuthorizationParams,
     });
 
     window.location.replace(

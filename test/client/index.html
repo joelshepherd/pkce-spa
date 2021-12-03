@@ -15,13 +15,13 @@
 
       const session = new Session({
         clientId: "client-id",
-        returnUrl: "http://localhost:5000/",
-        postLogoutUrl: "http://localhost:5000/",
+        returnUrl: "http://localhost:8080/",
+        postLogoutUrl: "http://localhost:8080/",
         scopes: ["offline_access"],
         openidConfiguration: {
-          authorizationEndpoint: "http://localhost:5001/auth",
-          tokenEndpoint: "http://localhost:5001/token",
-          endSessionEndpoint: "http://localhost:5001/session/end",
+          authorizationEndpoint: "http://localhost:8081/auth",
+          tokenEndpoint: "http://localhost:8081/token",
+          endSessionEndpoint: "http://localhost:8081/session/end",
         },
         extraAuthorizationParams: { prompt: "consent" },
       });

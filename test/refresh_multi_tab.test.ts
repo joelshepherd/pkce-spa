@@ -1,18 +1,16 @@
-import { test, expect } from "@playwright/test";
-import { login, waitToResolve } from "./utils";
-
-const testUrl = "http://localhost:5000/";
+import { expect, test } from "@playwright/test";
+import { clientUrl, login, providerUrl, waitToResolve } from "./utils";
 
 test("refresh flow with multiple tabs", async ({ context, page }) => {
   // This test is slow!
   test.slow();
 
-  await page.goto(testUrl);
+  await page.goto(clientUrl);
 
   await login(page);
 
   const returnUrl = page.url();
-  expect(returnUrl).toContain(testUrl);
+  expect(returnUrl).toContain(clientUrl);
   expect(returnUrl).not.toContain("error");
 
   // Wait for access token to resolve
@@ -23,14 +21,14 @@ test("refresh flow with multiple tabs", async ({ context, page }) => {
   // Open many other tabs
   new Array(25).fill(null).forEach(async () => {
     const page = await context.newPage();
-    await page.goto(testUrl);
+    await page.goto(clientUrl);
   });
 
   // Test 10 successful rotations
   for (let i = 0; i < 10; i++) {
     // Wait for a rotation response from any tab
     await context.waitForEvent("response", {
-      predicate: (res) => res.url() === "http://localhost:5001/token",
+      predicate: (res) => res.url() === `${providerUrl}token`,
       timeout: 30_000,
     });
     await page.waitForTimeout(2_000);
