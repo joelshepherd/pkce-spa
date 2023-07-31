@@ -17,7 +17,7 @@ session.onChange((accessToken) => {
   console.log("New access token issued:", accessToken);
 });
 
-document.getElementById("login-button").addEventListener("click", () => {
+document.getElementById("login-button")!.addEventListener("click", () => {
   // Starts the login flow
   session.login();
 });

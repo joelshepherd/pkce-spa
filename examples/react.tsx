@@ -24,13 +24,13 @@ function App() {
   );
 }
 
-const Token = React.createContext(null);
+const Token = React.createContext<string | null>(null);
 
 /**
  * Provide the access token from the session to the app
  */
 function TokenProvider({ children }: React.PropsWithChildren<{}>) {
-  const [token, setToken] = React.useState(null);
+  const [token, setToken] = React.useState<string | null>(null);
   React.useEffect(() => session.onChange(setToken), []);
 
   return <Token.Provider value={token}>{children}</Token.Provider>;

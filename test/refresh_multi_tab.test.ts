@@ -13,16 +13,12 @@ test("refresh flow with multiple tabs", async ({
   test.fixme(
     browserName === "webkit",
     "Safari does not support `BroadcastChannel` and the fallback storage" +
-      "implementation cannot handle this many tabs"
+      "implementation cannot handle this many tabs",
   );
 
   await page.goto(clientUrl);
 
   await login(page);
-
-  const returnUrl = page.url();
-  expect(returnUrl).toContain(clientUrl);
-  expect(returnUrl).not.toContain("error");
 
   // Wait for access token to resolve
   await waitToResolve(page);

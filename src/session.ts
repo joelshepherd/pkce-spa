@@ -67,8 +67,8 @@ export class Session {
     this.#state.subscribe((state) => {
       if (expiringTimer) clearTimeout(expiringTimer);
       if (state) {
-        const expiresIn = state.expiresAt - Date.now() - 30000;
-        if (expiresIn > 0)
+        const refreshIn = state.expiresAt - Date.now() - 30000;
+        if (refreshIn > 0)
           expiringTimer = setTimeout(() => {
             expiringTimer = undefined;
             this.#exchangeRefreshToken(state)
@@ -77,7 +77,7 @@ export class Session {
                 // Ignore error and leave it to the expired timer to handle
                 // Another tab may succeed refreshing in the meantime
               });
-          }, expiresIn);
+          }, refreshIn);
       }
     });
 
@@ -94,7 +94,7 @@ export class Session {
 
     // Publish access token changes
     this.#state.subscribe((state) =>
-      this.#accessToken.next(state ? state.accessToken : null)
+      this.#accessToken.next(state ? state.accessToken : null),
     );
 
     // Resolve initial state
@@ -113,8 +113,13 @@ export class Session {
           .then((state) => this.#nextState(state))
           .catch((error) => {
             // Storage listener will pick up in progress exchange from other tabs
-            if (error === InternalError.ExchangeInProgress) return;
-            this.#nextState(null);
+            if (error === InternalError.ExchangeInProgress) {
+              const timer = setTimeout(() => this.#nextState(null), 5_000);
+              const unsubscribe = this.#state.subscribe(() => {
+                clearTimeout(timer);
+                unsubscribe();
+              });
+            } else this.#nextState(null);
           });
       } else {
         this.#nextState(restoredState, false);
@@ -131,7 +136,7 @@ export class Session {
    * @param extraAuthorizationParams Extra parameters to pass to this authorization request
    */
   async login(
-    extraAuthorizationParams?: Record<string, string>
+    extraAuthorizationParams?: Record<string, string>,
   ): Promise<void> {
     const stateToken = generateStateToken();
     const [codeVerifier, codeChallenge] = await generatePKCETokens();
@@ -151,7 +156,7 @@ export class Session {
     });
 
     window.location.replace(
-      `${this.#config.openidConfiguration.authorizationEndpoint}?${params}`
+      `${this.#config.openidConfiguration.authorizationEndpoint}?${params}`,
     );
   }
 
@@ -166,11 +171,11 @@ export class Session {
             client_id: this.#config.clientId,
             post_logout_redirect_uri: this.#config.postLogoutUrl,
           }
-        : {}
+        : {},
     );
 
     window.location.replace(
-      `${this.#config.openidConfiguration.endSessionEndpoint}?${params}`
+      `${this.#config.openidConfiguration.endSessionEndpoint}?${params}`,
     );
   }
 
@@ -185,7 +190,7 @@ export class Session {
   /** Exchange authorisation code for state */
   async #exchangeAuthorizationCode(
     code: string,
-    stateToken: string
+    stateToken: string,
   ): Promise<State> {
     // TODO: abstract code storage
     const codeVerifier = window.sessionStorage.getItem("oidc:" + stateToken);
@@ -206,7 +211,7 @@ export class Session {
           code,
           code_verifier: codeVerifier,
         }),
-      }
+      },
     );
 
     // TODO: Convert to external errors
@@ -235,7 +240,7 @@ export class Session {
             grant_type: "refresh_token",
             refresh_token: state.refreshToken,
           }),
-        }
+        },
       );
 
       // TODO: Expose public token refresh failure reasons
@@ -272,7 +277,7 @@ async function generatePKCETokens(): Promise<[string, string]> {
 
   const buffer = await crypto.subtle.digest(
     "SHA-256",
-    new TextEncoder().encode(codeVerifier)
+    new TextEncoder().encode(codeVerifier),
   );
   const codeChallenge = btoa(String.fromCharCode(...new Uint8Array(buffer)))
     .replace(/\+/g, "-")
@@ -284,7 +289,7 @@ async function generatePKCETokens(): Promise<[string, string]> {
 
 function randomToken(
   size: number,
-  mask = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~"
+  mask = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~",
 ): string {
   return crypto
     .getRandomValues(new Uint8Array(size))

@@ -1,4 +1,4 @@
-import { Provider } from "oidc-provider";
+import Provider from "oidc-provider";
 
 const port = 8081;
 
@@ -20,6 +20,6 @@ const provider = new Provider(`http://localhost:${port}`, {
 
 provider.listen(port, () => {
   console.log(
-    `mock-provider listening on port ${port}, check http://localhost:${port}/.well-known/openid-configuration`
+    `mock-provider listening on port ${port}, check http://localhost:${port}/.well-known/openid-configuration`,
   );
 });

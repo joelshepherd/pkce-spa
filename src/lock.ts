@@ -77,7 +77,7 @@ const storage: Channel = (key, receiver) => {
 function restoreState(key: string): State {
   try {
     const parsed: unknown = JSON.parse(
-      window.localStorage.getItem(key) ?? "null"
+      window.localStorage.getItem(key) ?? "null",
     );
     if (
       Array.isArray(parsed) &&

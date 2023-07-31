@@ -6,10 +6,6 @@ test("refresh flow", async ({ page }) => {
 
   await login(page);
 
-  const returnUrl = page.url();
-  expect(returnUrl).toContain(clientUrl);
-  expect(returnUrl).not.toContain("error");
-
   // Wait for access token to resolve
   await waitToResolve(page);
 

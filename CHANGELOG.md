@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.3.1] - 2023-07-31
+
+- Fixed access token not resolving if browser was closed during a refresh attempt
+
 ## [0.3.0] - 2021-12-03
 
 - Added throw on missing/invalid state
